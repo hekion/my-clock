@@ -2,131 +2,57 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Smart Dashboard</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug Clock</title>
     <style>
-        * { box-sizing: border-box; }
-        body, html {
-            margin: 0; padding: 0;
-            width: 100vw; height: 100vh;
-            background-color: #1a1a1a;
-            color: #fff; font-family: sans-serif;
-            overflow: hidden;
+        body { margin: 0; background: #000; color: #fff; font-family: sans-serif; }
+        /* 背景画像を配置する場所 */
+        #bg {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            object-fit: cover; z-index: -1;
         }
-
-        /* 背景：シンプルにimgタグを最背面に配置 */
-        #bg-container {
-            position: fixed; top: 0; left: 0;
-            width: 100%; height: 100%;
-            z-index: -2;
+        .content {
+            height: 100vh; display: flex; flex-direction: column;
+            justify-content: center; align-items: center;
+            background: rgba(0,0,0,0.3); /* 画像が見えやすいように少し透かす */
         }
-        #bg-img {
-            width: 100%; height: 100%;
-            object-fit: cover;
-            display: none; /* 初期は非表示 */
-        }
-
-        /* 背景を暗くする層 */
-        .overlay {
-            position: fixed; top: 0; left: 0;
-            width: 100%; height: 100%;
-            background: rgba(0, 0, 0, 0.4);
-            z-index: -1;
-        }
-
-        /* 縦画面時の回転 */
-        @media screen and (orientation: portrait) {
-            #main {
-                width: 100vh; height: 100vw;
-                transform: rotate(90deg) translateY(-100vw);
-                transform-origin: top left;
-            }
-        }
-
-        #main {
-            width: 100vw; height: 100vh;
-            display: flex; justify-content: space-around; align-items: center;
-            padding: 20px;
-        }
-
-        .clock-box { text-align: center; flex: 1; }
-        #time { font-size: 15vh; font-weight: bold; }
-        #date { font-size: 4vh; opacity: 0.8; }
-
-        .side-box { width: 350px; background: rgba(255, 255, 255, 0.15); backdrop-filter: blur(10px); padding: 20px; border-radius: 20px; }
-        
-        /* 設定ボタン */
-        .config { position: fixed; bottom: 20px; right: 20px; z-index: 100; }
-        .btn { background: #fff; color: #000; padding: 12px 20px; border-radius: 30px; cursor: pointer; font-weight: bold; box-shadow: 0 4px 15px rgba(0,0,0,0.3); }
+        #time { font-size: 80px; }
+        .controls { position: fixed; bottom: 20px; }
+        input { display: none; }
+        label { background: #fff; color: #000; padding: 10px 20px; border-radius: 5px; cursor: pointer; }
     </style>
 </head>
 <body>
 
-<div id="bg-container">
-    <img id="bg-img" src="">
-</div>
-<div class="overlay"></div>
+    <img id="bg">
 
-<div id="main">
-    <div class="clock-box">
+    <div class="content">
         <div id="time">00:00:00</div>
-        <div id="date">0000.00.00 ---</div>
-    </div>
-    <div class="side-box">
-        <div style="text-align:center;">
-            <p>Google連携の準備中...</p>
+        <div class="controls">
+            <label for="file-up">ここを押して写真を選択</label>
+            <input type="file" id="file-up" accept="image/*">
         </div>
     </div>
-</div>
 
-<div class="config">
-    <label class="btn" for="up">📷 背景画像を選択</label>
-    <input type="file" id="up" accept="image/*" style="display:none">
-</div>
+    <script>
+        // 時計を動かす（これが動いていればJSは生きています）
+        setInterval(() => {
+            document.getElementById('time').innerText = new Date().toLocaleTimeString();
+        }, 1000);
 
-<script>
-    // 1. 時計更新
-    function tick() {
-        const n = new Date();
-        document.getElementById('time').textContent = n.toLocaleTimeString('ja-JP', { hour12: false });
-        const d = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
-        document.getElementById('date').textContent = `${n.getFullYear()}.${n.getMonth()+1}.${n.getDate()} ${d[n.getDay()]}`;
-    }
-    setInterval(tick, 1000); tick();
+        // 画像を表示させる（一番単純な書き方）
+        const input = document.getElementById('file-up');
+        const img = document.getElementById('bg');
 
-    // 2. 背景反映（最もシンプルな実装）
-    const up = document.getElementById('up');
-    const bgImg = document.getElementById('bg-img');
-
-    up.addEventListener('change', (e) => {
-        const file = e.target.files[0];
-        if (!file) return;
-
-        // DataURL形式で読み込み（これが一番反映されやすい）
-        const reader = new FileReader();
-        reader.onload = (event) => {
-            const result = event.target.result;
-            bgImg.src = result;
-            bgImg.style.display = 'block';
-            
-            // ローカルストレージに保存（次回起動用）
-            try {
-                localStorage.setItem('dashboard_bg', result);
-            } catch (err) {
-                console.log("Storage limit exceeded, but image is displayed.");
+        input.onchange = function() {
+            const file = input.files[0];
+            if (file) {
+                // ファイルをURLに変換して直接imgタグのsrcに入れる
+                const url = URL.createObjectURL(file);
+                img.src = url;
+                console.log("画像URL作成成功: " + url);
             }
         };
-        reader.readAsDataURL(file);
-    });
-
-    // 起動時に保存された画像を復元
-    window.onload = () => {
-        const saved = localStorage.getItem('dashboard_bg');
-        if (saved) {
-            bgImg.src = saved;
-            bgImg.style.display = 'block';
-        }
-    };
-</script>
+    </script>
 </body>
 </html>
