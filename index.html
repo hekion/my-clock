@@ -6,38 +6,39 @@
     <title>Smart Dashboard</title>
     <style>
         :root {
-            --bg-overlay: rgba(0, 0, 0, 0.4);
             --text-color: #ffffff;
-            --glass: rgba(255, 255, 255, 0.15);
+            --glass: rgba(0, 0, 0, 0.3); /* すりガラスを少し暗めに */
         }
         * { box-sizing: border-box; }
         body, html {
-            margin: 0;
-            padding: 0;
-            height: 100%;
-            width: 100%;
+            margin: 0; padding: 0;
+            height: 100%; width: 100%;
             font-family: 'Hiragino Kaku Gothic ProN', sans-serif;
-            background: #1a1a1a;
+            background-color: #000;
             color: var(--text-color);
-            overflow: hidden; /* スクロールを禁止して画面内に収める */
+            overflow: hidden;
         }
-        #background {
+        /* 背景画像の設定をボディに直接適用するか、最背面へ */
+        #background-layer {
             position: fixed;
             top: 0; left: 0;
             width: 100%; height: 100%;
             background-size: cover;
             background-position: center;
-            z-index: -2;
-            transition: background 0.5s ease;
+            background-repeat: no-repeat;
+            z-index: -1; /* 一番後ろ */
         }
-        .overlay {
+        /* 背景を少し暗くして文字を読みやすくするフィルター */
+        .dimmer {
             position: fixed;
             top: 0; left: 0;
             width: 100%; height: 100%;
-            background: var(--bg-overlay);
-            z-index: -1;
+            background: rgba(0, 0, 0, 0.3); /* ここで暗さを調整 */
+            z-index: 0;
         }
         .container {
+            position: relative;
+            z-index: 1; /* コンテンツを前面に */
             display: flex;
             flex-direction: column;
             height: 100vh;
@@ -47,102 +48,49 @@
             align-items: center;
         }
 
-        /* 横向き時のレイアウト切り替え */
         @media (orientation: landscape) {
-            .container {
-                flex-direction: row;
-                justify-content: space-around;
-            }
-            .content-grid {
-                height: 90vh;
-                justify-content: center;
-            }
+            .container { flex-direction: row; justify-content: space-around; }
         }
 
-        /* 時計エリア */
         .clock-section {
             text-align: center;
-            text-shadow: 0 2px 15px rgba(0,0,0,0.8);
+            text-shadow: 0 0 20px rgba(0,0,0,0.8);
         }
-        #clock {
-            font-size: clamp(3rem, 12vw, 8rem);
-            font-weight: 300;
-            line-height: 1;
-        }
-        #date-display {
-            font-size: clamp(1rem, 3vw, 1.8rem);
-            margin-top: 10px;
-            letter-spacing: 2px;
-        }
+        #clock { font-size: clamp(3.5rem, 15vw, 8rem); font-weight: 300; line-height: 1; }
+        #date-display { font-size: clamp(1.2rem, 4vw, 2rem); margin-top: 10px; }
 
-        /* コンテンツエリア */
-        .content-grid {
-            width: 100%;
-            max-width: 400px;
-            display: flex;
-            flex-direction: column;
-            gap: 15px;
-        }
+        .content-grid { width: 100%; max-width: 400px; display: flex; flex-direction: column; gap: 15px; }
         .card {
             background: var(--glass);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-            border-radius: 15px;
-            padding: 15px;
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px);
+            border-radius: 20px;
+            padding: 20px;
             border: 1px solid rgba(255,255,255,0.1);
         }
 
-        /* カレンダー */
-        #calendar { font-size: 0.8rem; }
         #calendar table { width: 100%; border-collapse: collapse; }
-        th { color: rgba(255,255,255,0.6); padding-bottom: 5px; font-weight: normal; }
-        td { text-align: center; padding: 5px 0; border-radius: 5px; }
-        .today { background: #ff4757; color: white; font-weight: bold; }
+        td, th { text-align: center; padding: 5px; font-size: 0.9rem; }
+        .today { background: #ff4757; color: white; border-radius: 50%; }
 
-        /* 予定リスト */
-        .todo-section { flex-grow: 1; overflow: hidden; display: flex; flex-direction: column; }
-        h4 { margin: 0 0 10px 0; font-size: 0.9rem; }
         #todo-input {
-            width: 100%;
-            background: rgba(255,255,255,0.1);
-            border: 1px solid rgba(255,255,255,0.2);
-            padding: 8px;
-            color: white;
-            border-radius: 8px;
-            font-size: 14px;
+            width: 100%; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2);
+            padding: 10px; color: white; border-radius: 10px; outline: none;
         }
-        #todo-list { 
-            margin-top: 10px; 
-            overflow-y: auto; 
-            max-height: 120px; 
-            padding: 0;
-            list-style: none;
-        }
-        li { 
-            background: rgba(0,0,0,0.2); 
-            padding: 8px; 
-            margin-bottom: 5px; 
-            border-radius: 5px; 
-            font-size: 0.8rem; 
-            display: flex; 
-            justify-content: space-between; 
-        }
+        #todo-list { list-style: none; padding: 0; margin-top: 10px; max-height: 100px; overflow-y: auto; }
+        li { background: rgba(0,0,0,0.3); padding: 8px; margin-bottom: 5px; border-radius: 8px; font-size: 0.8rem; display: flex; justify-content: space-between; }
 
-        /* 設定 */
-        .settings { position: fixed; bottom: 10px; right: 10px; }
+        .settings { position: fixed; bottom: 20px; right: 20px; z-index: 10; }
         .btn-upload {
-            cursor: pointer;
-            background: rgba(255,255,255,0.2);
-            padding: 5px 12px;
-            border-radius: 15px;
-            font-size: 0.7rem;
+            cursor: pointer; background: rgba(255,255,255,0.3); padding: 10px 20px;
+            border-radius: 30px; font-size: 0.8rem; backdrop-filter: blur(5px);
         }
     </style>
 </head>
 <body>
 
-<div id="background"></div>
-<div class="overlay"></div>
+<div id="background-layer"></div>
+<div class="dimmer"></div>
 
 <div class="container">
     <div class="clock-section">
@@ -152,38 +100,37 @@
 
     <div class="content-grid">
         <div class="card" id="calendar">
-            <div style="margin-bottom:8px; font-weight:bold; text-align:center;" id="month-year"></div>
+            <div id="month-year" style="text-align:center; font-weight:bold; margin-bottom:10px;"></div>
             <table>
-                <thead>
-                    <tr><th>日</th><th>月</th><th>火</th><th>水</th><th>木</th><th>金</th><th>土</th></tr>
-                </thead>
+                <thead><tr><th>日</th><th>月</th><th>火</th><th>水</th><th>木</th><th>金</th><th>土</th></tr></thead>
                 <tbody id="calendar-body"></tbody>
             </table>
         </div>
 
-        <div class="card todo-section">
-            <h4>今日の予定</h4>
-            <input type="text" id="todo-input" placeholder="予定を追加...">
+        <div class="card">
+            <input type="text" id="todo-input" placeholder="予定を追加してEnter">
             <ul id="todo-list"></ul>
         </div>
     </div>
 </div>
 
 <div class="settings">
-    <label class="btn-upload" for="bg-upload">背景変更</label>
+    <label class="btn-upload" for="bg-upload">📷 背景変更</label>
     <input type="file" id="bg-upload" accept="image/*" style="display:none">
 </div>
 
 <script>
+    // 時計更新
     function updateClock() {
         const now = new Date();
         document.getElementById('clock').textContent = now.toLocaleTimeString('ja-JP', { hour12: false });
         const days = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
-        document.getElementById('date-display').textContent = `${now.getFullYear()}.${String(now.getMonth() + 1).padStart(2, '0')}.${String(now.getDate()).padStart(2, '0')} ${days[now.getDay()]}`;
+        document.getElementById('date-display').textContent = `${now.getFullYear()}.${String(now.getMonth()+1).padStart(2,'0')}.${String(now.getDate()).padStart(2,'0')} ${days[now.getDay()]}`;
     }
     setInterval(updateClock, 1000);
     updateClock();
 
+    // カレンダー作成
     function createCalendar() {
         const now = new Date();
         const year = now.getFullYear(), month = now.getMonth();
@@ -212,28 +159,42 @@
     }
     createCalendar();
 
+    // 背景画像処理
     const bgUpload = document.getElementById('bg-upload');
+    const bgLayer = document.getElementById('background-layer');
+
     bgUpload.addEventListener('change', (e) => {
         const file = e.target.files[0];
         if(!file) return;
+        
         const reader = new FileReader();
         reader.onload = (event) => {
-            const url = event.target.result;
-            document.getElementById('background').style.backgroundImage = `url(${url})`;
-            try { localStorage.setItem('dashboard-bg', url); } catch(e) { alert("画像が大きすぎます"); }
+            const imageData = event.target.result;
+            // 画面に即反映
+            bgLayer.style.backgroundImage = `url(${imageData})`;
+            // ローカルストレージに保存（容量制限に注意）
+            try {
+                localStorage.setItem('saved-bg', imageData);
+            } catch (err) {
+                console.log("画像が大きすぎるため保存はされませんでしたが、現在の表示には反映しました。");
+            }
         };
         reader.readAsDataURL(file);
     });
 
-    const savedBg = localStorage.getItem('dashboard-bg');
-    if (savedBg) document.getElementById('background').style.backgroundImage = `url(${savedBg})`;
+    // 保存済み画像の読み込み
+    const saved = localStorage.getItem('saved-bg');
+    if(saved) {
+        bgLayer.style.backgroundImage = `url(${saved})`;
+    }
 
+    // 予定リスト
     const todoInput = document.getElementById('todo-input');
     const todoList = document.getElementById('todo-list');
     todoInput.addEventListener('keypress', (e) => {
         if (e.key === 'Enter' && todoInput.value.trim() !== '') {
             const li = document.createElement('li');
-            li.innerHTML = `<span>${todoInput.value}</span><span style="cursor:pointer">×</span>`;
+            li.innerHTML = `<span>${todoInput.value}</span><span style="cursor:pointer">✕</span>`;
             li.onclick = () => li.remove();
             todoList.appendChild(li);
             todoInput.value = '';
