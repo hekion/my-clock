@@ -3,33 +3,38 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Smart Clock</title>
+    <title>Smart Dashboard</title>
     <style>
         * { box-sizing: border-box; }
         body, html {
             margin: 0; padding: 0;
             width: 100vw; height: 100vh;
-            background-color: #000;
+            background-color: #1a1a1a;
             color: #fff; font-family: sans-serif;
             overflow: hidden;
         }
 
-        /* 背景：imgタグを使って直接表示（これが一番確実です） */
-        #bg-img {
+        /* 背景：シンプルにimgタグを最背面に配置 */
+        #bg-container {
             position: fixed; top: 0; left: 0;
             width: 100%; height: 100%;
-            object-fit: cover;
             z-index: -2;
-            display: none; /* 画像がない時は非表示 */
+        }
+        #bg-img {
+            width: 100%; height: 100%;
+            object-fit: cover;
+            display: none; /* 初期は非表示 */
         }
 
-        .dim {
+        /* 背景を暗くする層 */
+        .overlay {
             position: fixed; top: 0; left: 0;
             width: 100%; height: 100%;
             background: rgba(0, 0, 0, 0.4);
             z-index: -1;
         }
 
+        /* 縦画面時の回転 */
         @media screen and (orientation: portrait) {
             #main {
                 width: 100vh; height: 100vw;
@@ -44,44 +49,43 @@
             padding: 20px;
         }
 
-        .clock { text-align: center; flex: 1; }
-        #time { font-size: 15vh; }
+        .clock-box { text-align: center; flex: 1; }
+        #time { font-size: 15vh; font-weight: bold; }
         #date { font-size: 4vh; opacity: 0.8; }
 
-        .side { width: 320px; background: rgba(255,255,255,0.1); backdrop-filter: blur(10px); padding: 15px; border-radius: 15px; }
-        table { width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 10px; }
-        td, th { text-align: center; padding: 5px; }
-        .today { background: #ff4757; color: #fff; border-radius: 50%; }
-
-        .config { position: fixed; bottom: 20px; right: 20px; }
-        .btn { background: rgba(255,255,255,0.3); color: #fff; padding: 10px 15px; border-radius: 10px; cursor: pointer; border: 1px solid #fff; font-size: 12px; }
+        .side-box { width: 350px; background: rgba(255, 255, 255, 0.15); backdrop-filter: blur(10px); padding: 20px; border-radius: 20px; }
+        
+        /* 設定ボタン */
+        .config { position: fixed; bottom: 20px; right: 20px; z-index: 100; }
+        .btn { background: #fff; color: #000; padding: 12px 20px; border-radius: 30px; cursor: pointer; font-weight: bold; box-shadow: 0 4px 15px rgba(0,0,0,0.3); }
     </style>
 </head>
 <body>
 
-<img id="bg-img" src="">
-<div class="dim"></div>
+<div id="bg-container">
+    <img id="bg-img" src="">
+</div>
+<div class="overlay"></div>
 
 <div id="main">
-    <div class="clock">
+    <div class="clock-box">
         <div id="time">00:00:00</div>
         <div id="date">0000.00.00 ---</div>
     </div>
-    <div class="side">
-        <div id="m-y" style="text-align:center; font-weight:bold;"></div>
-        <table>
-            <thead><tr><th>日</th><th>月</th><th>火</th><th>水</th><th>木</th><th>金</th><th>土</th></tr></thead>
-            <tbody id="cal"></tbody>
-        </table>
+    <div class="side-box">
+        <div style="text-align:center;">
+            <p>Google連携の準備中...</p>
+        </div>
     </div>
 </div>
 
 <div class="config">
-    <label class="btn" for="up">背景選択</label>
+    <label class="btn" for="up">📷 背景画像を選択</label>
     <input type="file" id="up" accept="image/*" style="display:none">
 </div>
 
 <script>
+    // 1. 時計更新
     function tick() {
         const n = new Date();
         document.getElementById('time').textContent = n.toLocaleTimeString('ja-JP', { hour12: false });
@@ -90,50 +94,39 @@
     }
     setInterval(tick, 1000); tick();
 
-    function draw() {
-        const n = new Date(), y = n.getFullYear(), m = n.getMonth();
-        document.getElementById('m-y').textContent = `${y}年 ${m + 1}月`;
-        const f = new Date(y, m, 1).getDay(), l = new Date(y, m + 1, 0).getDate();
-        const b = document.getElementById('cal'); b.innerHTML = '';
-        let d = 1;
-        for (let i = 0; i < 6; i++) {
-            let r = document.createElement('tr');
-            for (let j = 0; j < 7; j++) {
-                let c = document.createElement('td');
-                if (i === 0 && j < f || d > l) { c.textContent = ''; }
-                else {
-                    c.textContent = d;
-                    if (d === n.getDate()) c.className = 'today';
-                    d++;
-                }
-                r.appendChild(c);
-            }
-            b.appendChild(r); if (d > l) break;
-        }
-    }
-    draw();
-
+    // 2. 背景反映（最もシンプルな実装）
     const up = document.getElementById('up');
     const bgImg = document.getElementById('bg-img');
 
-    up.onchange = (e) => {
+    up.addEventListener('change', (e) => {
         const file = e.target.files[0];
         if (!file) return;
 
+        // DataURL形式で読み込み（これが一番反映されやすい）
         const reader = new FileReader();
-        reader.onload = (ev) => {
-            bgImg.src = ev.target.result;
+        reader.onload = (event) => {
+            const result = event.target.result;
+            bgImg.src = result;
             bgImg.style.display = 'block';
-            try { localStorage.setItem('bg_data', ev.target.result); } catch(err) {}
+            
+            // ローカルストレージに保存（次回起動用）
+            try {
+                localStorage.setItem('dashboard_bg', result);
+            } catch (err) {
+                console.log("Storage limit exceeded, but image is displayed.");
+            }
         };
         reader.readAsDataURL(file);
-    };
+    });
 
-    const saved = localStorage.getItem('bg_data');
-    if (saved) {
-        bgImg.src = saved;
-        bgImg.style.display = 'block';
-    }
+    // 起動時に保存された画像を復元
+    window.onload = () => {
+        const saved = localStorage.getItem('dashboard_bg');
+        if (saved) {
+            bgImg.src = saved;
+            bgImg.style.display = 'block';
+        }
+    };
 </script>
 </body>
 </html>
