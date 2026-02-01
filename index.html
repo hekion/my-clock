@@ -2,112 +2,141 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>My Dashboard Clock</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Smart Dashboard</title>
     <style>
         :root {
             --bg-overlay: rgba(0, 0, 0, 0.4);
             --text-color: #ffffff;
+            --glass: rgba(255, 255, 255, 0.15);
         }
+        * { box-sizing: border-box; }
         body, html {
             margin: 0;
             padding: 0;
             height: 100%;
             width: 100%;
-            font-family: 'Helvetica Neue', Arial, sans-serif;
-            overflow: hidden;
-            background: #222;
+            font-family: 'Hiragino Kaku Gothic ProN', sans-serif;
+            background: #1a1a1a;
             color: var(--text-color);
+            overflow: hidden; /* スクロールを禁止して画面内に収める */
         }
         #background {
             position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
             background-size: cover;
             background-position: center;
-            z-index: -1;
-            transition: 0.5s;
+            z-index: -2;
+            transition: background 0.5s ease;
         }
         .overlay {
             position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
             background: var(--bg-overlay);
             z-index: -1;
         }
         .container {
-            display: grid;
-            grid-template-columns: 1fr 350px;
-            gap: 20px;
-            padding: 40px;
-            height: 100vh;
-            box-sizing: border-box;
-        }
-        /* 時計 */
-        .clock-section {
             display: flex;
             flex-direction: column;
+            height: 100vh;
+            padding: 20px;
+            gap: 20px;
             justify-content: center;
             align-items: center;
-            text-shadow: 0 4px 15px rgba(0,0,0,0.5);
+        }
+
+        /* 横向き時のレイアウト切り替え */
+        @media (orientation: landscape) {
+            .container {
+                flex-direction: row;
+                justify-content: space-around;
+            }
+            .content-grid {
+                height: 90vh;
+                justify-content: center;
+            }
+        }
+
+        /* 時計エリア */
+        .clock-section {
+            text-align: center;
+            text-shadow: 0 2px 15px rgba(0,0,0,0.8);
         }
         #clock {
-            font-size: 8rem;
-            font-weight: bold;
-            margin-bottom: 10px;
+            font-size: clamp(3rem, 12vw, 8rem);
+            font-weight: 300;
+            line-height: 1;
         }
         #date-display {
-            font-size: 2rem;
+            font-size: clamp(1rem, 3vw, 1.8rem);
+            margin-top: 10px;
+            letter-spacing: 2px;
         }
-        /* サイドバー（カレンダー & 予定） */
-        .sidebar {
-            background: rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(10px);
-            border-radius: 20px;
-            padding: 20px;
+
+        /* コンテンツエリア */
+        .content-grid {
+            width: 100%;
+            max-width: 400px;
             display: flex;
             flex-direction: column;
-            gap: 20px;
+            gap: 15px;
         }
-        #calendar {
-            text-align: center;
+        .card {
+            background: var(--glass);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border-radius: 15px;
+            padding: 15px;
+            border: 1px solid rgba(255,255,255,0.1);
         }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-        th { font-size: 0.8rem; padding: 5px; color: #aaa; }
-        td { padding: 10px 5px; text-align: center; border-radius: 5px; }
+
+        /* カレンダー */
+        #calendar { font-size: 0.8rem; }
+        #calendar table { width: 100%; border-collapse: collapse; }
+        th { color: rgba(255,255,255,0.6); padding-bottom: 5px; font-weight: normal; }
+        td { text-align: center; padding: 5px 0; border-radius: 5px; }
         .today { background: #ff4757; color: white; font-weight: bold; }
+
         /* 予定リスト */
-        .todo-section {
-            flex-grow: 1;
-        }
+        .todo-section { flex-grow: 1; overflow: hidden; display: flex; flex-direction: column; }
+        h4 { margin: 0 0 10px 0; font-size: 0.9rem; }
         #todo-input {
             width: 100%;
-            background: rgba(255,255,255,0.2);
-            border: none;
-            padding: 10px;
+            background: rgba(255,255,255,0.1);
+            border: 1px solid rgba(255,255,255,0.2);
+            padding: 8px;
             color: white;
-            border-radius: 5px;
-            box-sizing: border-box;
+            border-radius: 8px;
+            font-size: 14px;
         }
-        ul { list-style: none; padding: 0; margin-top: 10px; }
-        li { background: rgba(0,0,0,0.2); padding: 8px; margin-bottom: 5px; border-radius: 5px; font-size: 0.9rem; }
-        /* 設定ボタン */
-        .settings {
-            position: fixed;
-            bottom: 20px;
-            right: 20px;
-            opacity: 0.3;
-            transition: 0.3s;
+        #todo-list { 
+            margin-top: 10px; 
+            overflow-y: auto; 
+            max-height: 120px; 
+            padding: 0;
+            list-style: none;
         }
-        .settings:hover { opacity: 1; }
-        label { cursor: pointer; background: rgba(255,255,255,0.2); padding: 5px 10px; border-radius: 5px; font-size: 0.8rem; }
+        li { 
+            background: rgba(0,0,0,0.2); 
+            padding: 8px; 
+            margin-bottom: 5px; 
+            border-radius: 5px; 
+            font-size: 0.8rem; 
+            display: flex; 
+            justify-content: space-between; 
+        }
+
+        /* 設定 */
+        .settings { position: fixed; bottom: 10px; right: 10px; }
+        .btn-upload {
+            cursor: pointer;
+            background: rgba(255,255,255,0.2);
+            padding: 5px 12px;
+            border-radius: 15px;
+            font-size: 0.7rem;
+        }
     </style>
 </head>
 <body>
@@ -118,69 +147,58 @@
 <div class="container">
     <div class="clock-section">
         <div id="clock">00:00:00</div>
-        <div id="date-display">2026.02.02 MON</div>
+        <div id="date-display">----.--.-- ---</div>
     </div>
 
-    <div class="sidebar">
-        <div id="calendar">
-            <h3 id="month-year"></h3>
-            <table id="calendar-table">
+    <div class="content-grid">
+        <div class="card" id="calendar">
+            <div style="margin-bottom:8px; font-weight:bold; text-align:center;" id="month-year"></div>
+            <table>
                 <thead>
                     <tr><th>日</th><th>月</th><th>火</th><th>水</th><th>木</th><th>金</th><th>土</th></tr>
                 </thead>
                 <tbody id="calendar-body"></tbody>
             </table>
         </div>
-        <div class="todo-section">
+
+        <div class="card todo-section">
             <h4>今日の予定</h4>
-            <input type="text" id="todo-input" placeholder="予定を入力してEnter">
+            <input type="text" id="todo-input" placeholder="予定を追加...">
             <ul id="todo-list"></ul>
         </div>
     </div>
 </div>
 
 <div class="settings">
-    <label for="bg-upload">背景画像を変更</label>
+    <label class="btn-upload" for="bg-upload">背景変更</label>
     <input type="file" id="bg-upload" accept="image/*" style="display:none">
 </div>
 
 <script>
-    // 時計の更新
     function updateClock() {
         const now = new Date();
-        const h = String(now.getHours()).padStart(2, '0');
-        const m = String(now.getMinutes()).padStart(2, '0');
-        const s = String(now.getSeconds()).padStart(2, '0');
-        document.getElementById('clock').textContent = `${h}:${m}:${s}`;
-        
+        document.getElementById('clock').textContent = now.toLocaleTimeString('ja-JP', { hour12: false });
         const days = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
-        const dateStr = `${now.getFullYear()}.${String(now.getMonth() + 1).padStart(2, '0')}.${String(now.getDate()).padStart(2, '0')} ${days[now.getDay()]}`;
-        document.getElementById('date-display').textContent = dateStr;
+        document.getElementById('date-display').textContent = `${now.getFullYear()}.${String(now.getMonth() + 1).padStart(2, '0')}.${String(now.getDate()).padStart(2, '0')} ${days[now.getDay()]}`;
     }
     setInterval(updateClock, 1000);
     updateClock();
 
-    // カレンダー生成
     function createCalendar() {
         const now = new Date();
-        const year = now.getFullYear();
-        const month = now.getMonth();
+        const year = now.getFullYear(), month = now.getMonth();
         document.getElementById('month-year').textContent = `${year}年 ${month + 1}月`;
-        
         const firstDay = new Date(year, month, 1).getDay();
         const lastDate = new Date(year, month + 1, 0).getDate();
         const tbody = document.getElementById('calendar-body');
         tbody.innerHTML = '';
-        
         let date = 1;
         for (let i = 0; i < 6; i++) {
             let row = document.createElement('tr');
             for (let j = 0; j < 7; j++) {
                 let cell = document.createElement('td');
-                if (i === 0 && j < firstDay) {
+                if (i === 0 && j < firstDay || date > lastDate) {
                     cell.textContent = '';
-                } else if (date > lastDate) {
-                    break;
                 } else {
                     cell.textContent = date;
                     if (date === now.getDate()) cell.classList.add('today');
@@ -194,32 +212,28 @@
     }
     createCalendar();
 
-    // 背景画像の保存・読込
     const bgUpload = document.getElementById('bg-upload');
     bgUpload.addEventListener('change', (e) => {
         const file = e.target.files[0];
+        if(!file) return;
         const reader = new FileReader();
         reader.onload = (event) => {
             const url = event.target.result;
             document.getElementById('background').style.backgroundImage = `url(${url})`;
-            localStorage.setItem('dashboard-bg', url);
+            try { localStorage.setItem('dashboard-bg', url); } catch(e) { alert("画像が大きすぎます"); }
         };
         reader.readAsDataURL(file);
     });
 
     const savedBg = localStorage.getItem('dashboard-bg');
-    if (savedBg) {
-        document.getElementById('background').style.backgroundImage = `url(${savedBg})`;
-    }
+    if (savedBg) document.getElementById('background').style.backgroundImage = `url(${savedBg})`;
 
-    // 簡易予定リスト
     const todoInput = document.getElementById('todo-input');
     const todoList = document.getElementById('todo-list');
-    
     todoInput.addEventListener('keypress', (e) => {
         if (e.key === 'Enter' && todoInput.value.trim() !== '') {
             const li = document.createElement('li');
-            li.textContent = todoInput.value;
+            li.innerHTML = `<span>${todoInput.value}</span><span style="cursor:pointer">×</span>`;
             li.onclick = () => li.remove();
             todoList.appendChild(li);
             todoInput.value = '';
